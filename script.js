@@ -275,71 +275,43 @@ function inicializarApp() {
     // Inicializar navegación
     inicializarNavegacion();
 
-    // Cargar ingresos del localStorage si existen
+    // Inicializar selector de años
+    inicializarSelectorAños();
+
+    // Cargar datos del localStorage
     const ingresosGuardados = localStorage.getItem('ingresos');
     if (ingresosGuardados) {
         ingresos = JSON.parse(ingresosGuardados);
     }
 
-    // Cargar estado de gastos del localStorage si existen
     const gastosEstadoGuardado = localStorage.getItem('gastosEstado');
     if (gastosEstadoGuardado) {
         gastosEstado = JSON.parse(gastosEstadoGuardado);
     }
 
-    // Cargar saldos de crédito restantes del localStorage
-    const saldosCreditoGuardados = localStorage.getItem('creditoSaldosRestantes');
-    if (saldosCreditoGuardados) {
-        creditoSaldosRestantes = JSON.parse(saldosCreditoGuardados);
-        
-        // Asegurarse de que los nuevos items de credito (como Hacienda) se inicialicen si es necesario
-        for (const concepto in saldosInicialesCredito) {
-            if (creditoSaldosRestantes[concepto] === undefined) {
-                creditoSaldosRestantes[concepto] = saldosInicialesCredito[concepto];
-            }
-        }
-
+    const creditoSaldosGuardados = localStorage.getItem('creditoSaldosRestantes');
+    if (creditoSaldosGuardados) {
+        creditoSaldosRestantes = JSON.parse(creditoSaldosGuardados);
     } else {
         // Si no hay saldos guardados, inicializar con los saldos iniciales
         creditoSaldosRestantes = { ...saldosInicialesCredito };
     }
-    localStorage.setItem('creditoSaldosRestantes', JSON.stringify(creditoSaldosRestantes));
 
-    // Inicializar selector de años
-    inicializarSelectorAños();
-
-    // Establecer mes y año actual
-    const fecha = new Date();
-    mesActual.value = fecha.getMonth() + 1;
-    añoActual.value = fecha.getFullYear();
-
-    // Mostrar gastos fijos
-    mostrarGastosFijos();
-    
-    // Mostrar ingresos existentes
-    mostrarIngresos();
-    
-    // Actualizar balance y gráfico
-    actualizarBalance();
-
-    // Event listeners para cambios de mes y año
-    mesActual.addEventListener('change', mostrarGastosFijos);
-    añoActual.addEventListener('change', mostrarGastosFijos);
-
-    // Inicializar objetivos de ahorro
-    inicializarObjetivosAhorro();
-
-    // Inicializar gastos extras
-    inicializarGastosExtras();
-
-    // Inicializar acordeón de ingresos
+    // Inicializar componentes
+    inicializarGastosExtras(); // Carga gastos extras del localStorage
     inicializarAcordeonIngresos();
-
-    // Inicializar import/export
     inicializarImportExport();
-
-    // Inicializar chat
     inicializarChat();
+    inicializarObjetivosAhorro();
+    inicializarCalendario();
+
+    // Mostrar datos iniciales
+    mostrarGastosFijos();
+    mostrarIngresos();
+    cargarObjetivos();
+
+    // Actualizar el balance después de cargar todos los datos
+    actualizarBalance();
 }
 
 // Función para inicializar el selector de años
@@ -375,6 +347,15 @@ function calcularGastosPagados() {
     }
 
     return totalGastosPagados;
+}
+
+// Función para calcular la sumatoria de los saldos restantes de crédito
+function calcularTotalSaldosCredito() {
+    let total = 0;
+    for (const saldo in creditoSaldosRestantes) {
+        total += creditoSaldosRestantes[saldo];
+    }
+    return total;
 }
 
 // Función para mostrar los gastos fijos
@@ -439,6 +420,7 @@ function mostrarGastosFijos() {
     document.getElementById('totalGastosFijosMes').textContent = `${totalGastosFijosMes.toFixed(2)} €`;
     gastosPagadosElement.textContent = `${gastosPagadosMes.toFixed(2)} €`;
     gastosPendientesElement.textContent = `${gastosPendientesMes.toFixed(2)} €`;
+    document.getElementById('totalSaldosCreditoRestantes').textContent = `${calcularTotalSaldosCredito().toFixed(2)} €`;
     
     // Guardar el estado de pago del mes
     localStorage.setItem('gastosEstado', JSON.stringify(gastosEstado));
@@ -732,9 +714,19 @@ function calcularBalanceMensual(mes, año) {
 function agregarIngreso(e) {
     e.preventDefault();
 
-    const concepto = conceptoIngreso.value.trim();
-    const monto = parseFloat(montoIngreso.value);
-    const fecha = fechaIngreso.value;
+    // Verificar si los elementos del formulario existen
+    const conceptoInput = document.getElementById('conceptoIngreso');
+    const montoInput = document.getElementById('montoIngreso');
+    const fechaInput = document.getElementById('fechaIngreso');
+
+    if (!conceptoInput || !montoInput || !fechaInput) {
+        console.log('Elementos del formulario de ingresos no encontrados. Es posible que no estés en la sección de ingresos.');
+        return;
+    }
+
+    const concepto = conceptoInput.value.trim();
+    const monto = parseFloat(montoInput.value);
+    const fecha = fechaInput.value;
 
     if (!concepto || monto <= 0 || !fecha) {
         alert('Por favor, complete todos los campos correctamente');
@@ -748,7 +740,7 @@ function agregarIngreso(e) {
     actualizarBalance();
 
     // Limpiar el formulario
-    ingresoForm.reset();
+    e.target.reset();
 }
 
 // Función para editar un ingreso
@@ -791,18 +783,47 @@ function inicializarGastosExtras() {
         gastosExtras = JSON.parse(gastosExtrasGuardados);
     }
 
-    // Event listeners
+    const nuevoGastoExtraBtn = document.getElementById('nuevoGastoExtraBtn');
+    const gastoExtraModal = document.getElementById('gastoExtraModal');
+    const gastoExtraForm = document.getElementById('gastoExtraForm');
+
+    if (!nuevoGastoExtraBtn || !gastoExtraModal || !gastoExtraForm) {
+        console.log('Elementos de gastos extras no encontrados.');
+        return;
+    }
+
+    // Remover event listeners anteriores
+    nuevoGastoExtraBtn.removeEventListener('click', () => gastoExtraModal.classList.add('active'));
+    gastoExtraForm.removeEventListener('submit', agregarGastoExtra);
+
+    // Añadir nuevos event listeners
     nuevoGastoExtraBtn.addEventListener('click', () => {
+        // Establecer la fecha actual como valor por defecto
+        const fechaInput = document.getElementById('fechaGastoExtra');
+        if (fechaInput) {
+            const today = new Date().toISOString().split('T')[0];
+            fechaInput.value = today;
+        }
         gastoExtraModal.classList.add('active');
     });
 
+    gastoExtraForm.addEventListener('submit', agregarGastoExtra);
+
+    // Event listeners para cerrar el modal
     document.querySelectorAll('.btn-cerrar').forEach(btn => {
         btn.addEventListener('click', () => {
             gastoExtraModal.classList.remove('active');
+            gastoExtraForm.reset();
         });
     });
 
-    gastoExtraForm.addEventListener('submit', agregarGastoExtra);
+    // Cerrar modal al hacer clic fuera
+    window.addEventListener('click', (e) => {
+        if (e.target === gastoExtraModal) {
+            gastoExtraModal.classList.remove('active');
+            gastoExtraForm.reset();
+        }
+    });
 
     // Mostrar gastos extras existentes
     mostrarGastosExtras();
@@ -910,7 +931,16 @@ function inicializarAcordeonIngresos() {
     const toggleBtn = document.getElementById('toggleHistorialIngresos');
     const contenido = document.getElementById('historialIngresos');
 
+    // Verificar si los elementos existen antes de continuar
+    if (!toggleBtn || !contenido) {
+        console.log('Elementos del acordeón de ingresos no encontrados. Es posible que no estés en la sección de ingresos.');
+        return;
+    }
+
+    console.log("Inicializando acordeón de ingresos. Botón:", toggleBtn, "Contenido:", contenido);
+
     toggleBtn.addEventListener('click', () => {
+        console.log("Botón de historial de ingresos clickeado.");
         toggleBtn.classList.toggle('active');
         contenido.classList.toggle('active');
     });
@@ -924,6 +954,7 @@ function exportarDatos() {
         gastosEstado,
         creditoSaldosRestantes,
         objetivosAhorro: ObjetivoAhorro.cargarTodos(),
+        calendarioLaboralData,
         version: '1.0' // Para futuras actualizaciones del formato
     };
 
@@ -975,29 +1006,37 @@ function importarDatos(event) {
                 localStorage.setItem('objetivosAhorro', JSON.stringify(datos.objetivosAhorro));
             }
 
+            // Importar datos del calendario laboral
+            if (datos.calendarioLaboralData) {
+                 calendarioLaboralData = datos.calendarioLaboralData;
+            }
+
             // Guardar datos en localStorage
             localStorage.setItem('ingresos', JSON.stringify(ingresos));
             localStorage.setItem('gastosExtras', JSON.stringify(gastosExtras));
             localStorage.setItem('gastosEstado', JSON.stringify(gastosEstado));
             localStorage.setItem('creditoSaldosRestantes', JSON.stringify(creditoSaldosRestantes));
+            localStorage.setItem('calendarioLaboralData', JSON.stringify(calendarioLaboralData));
 
             // Actualizar la interfaz
-            mostrarIngresos();
             mostrarGastosFijos();
+            mostrarIngresos();
             mostrarGastosExtras();
             cargarObjetivos();
+            mostrarAcciones();
+            inicializarGraficoBalance();
+            renderCalendar();
+
+            // Actualizar el balance después de importar los datos
             actualizarBalance();
 
             alert('Datos importados correctamente');
         } catch (error) {
             console.error('Error al importar datos:', error);
-            alert('Error al importar los datos. El archivo podría estar corrupto o tener un formato incorrecto.');
+            alert('Error al importar los datos. Verifica que el archivo sea válido.');
         }
     };
     reader.readAsText(file);
-    
-    // Limpiar el input para permitir importar el mismo archivo de nuevo
-    event.target.value = '';
 }
 
 // Función para inicializar los botones de importar/exportar
@@ -1168,5 +1207,414 @@ async function obtenerRespuestaGroq(mensaje) {
     }
 }
 
+// Funciones para el Calendario Laboral
+let calendarioLaboralData = JSON.parse(localStorage.getItem('calendarioLaboralData')) || {};
+
+const calendarDaysGrid = document.querySelector('.calendar-days-grid');
+const currentMonthYearHeader = document.getElementById('currentMonthYear');
+const prevMonthBtn = document.getElementById('prevMonthBtn');
+const nextMonthBtn = document.getElementById('nextMonthBtn');
+const workScheduleInput = document.getElementById('workSchedule');
+const workFunctionTextarea = document.getElementById('workFunction');
+const saveDailyEarningBtn = document.getElementById('saveDailyEarningBtn');
+const dailyEarningsActionsDiv = document.querySelector('.daily-earnings-actions');
+const editDailyEarningBtn = document.getElementById('editDailyEarningBtn');
+const deleteDailyEarningBtn = document.getElementById('deleteDailyEarningBtn');
+const dailyEarningInput = document.getElementById('dailyEarning'); // Nuevo: obtener el input de ganancia
+
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let selectedDate = null;
+
+// Debugging: Log initial calendar data
+console.log('Calendario Laboral: Datos iniciales cargados de localStorage', calendarioLaboralData);
+
+function renderCalendar() {
+    calendarDaysGrid.innerHTML = ''; // Limpiar días anteriores
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    const daysInMonth = lastDayOfMonth.getDate();
+
+    // Días de la semana
+    const weekdays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const calendarWeekdaysDiv = document.querySelector('.calendar-weekdays');
+    calendarWeekdaysDiv.innerHTML = '';
+    weekdays.forEach(day => {
+        const weekdayElement = document.createElement('div');
+        weekdayElement.textContent = day;
+        calendarWeekdaysDiv.appendChild(weekdayElement);
+    });
+
+    // Rellenar días vacíos al principio del mes
+    const firstDayOfWeek = firstDayOfMonth.getDay();
+    for (let i = 0; i < firstDayOfWeek; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.classList.add('calendar-day', 'other-month');
+        calendarDaysGrid.appendChild(emptyDay);
+    }
+
+    // Renderizar días del mes
+    for (let i = 1; i <= daysInMonth; i++) {
+        const dayElement = document.createElement('div');
+        dayElement.classList.add('calendar-day', 'current-month');
+        dayElement.textContent = i; // Mostrar solo el número del día inicialmente
+        dayElement.dataset.date = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`; // YYYY-MM-DD
+
+        const dateKey = dayElement.dataset.date;
+
+        // Marcar días con registros existentes y mostrar la ganancia
+        if (calendarioLaboralData[dateKey]) {
+            dayElement.classList.add('has-earning');
+            // Crear un elemento para mostrar la ganancia dentro de la celda del día
+            const earningSpan = document.createElement('span');
+            earningSpan.classList.add('daily-earning-display'); // Clase para estilos específicos
+            earningSpan.textContent = `${calendarioLaboralData[dateKey].ganancia.toFixed(2)}€`; // Mostrar la ganancia guardada
+            
+            // Limpiar el textContent original (el número del día) y añadir la ganancia
+            dayElement.innerHTML = '';
+            const dayNumberSpan = document.createElement('span');
+            dayNumberSpan.textContent = i;
+            dayElement.appendChild(dayNumberSpan);
+            dayElement.appendChild(earningSpan);
+        }
+
+        // Manejar clic en el día
+        dayElement.addEventListener('click', handleDayClick);
+
+        calendarDaysGrid.appendChild(dayElement);
+    }
+
+    // *** Debugging: Verificar si los listeners se añadieron ***
+    const daysWithListeners = calendarDaysGrid.querySelectorAll('.calendar-day');
+    console.log(`Calendar rendered for ${currentYear}-${currentMonth + 1}. Found ${daysWithListeners.length} calendar-day elements.`);
+    if (daysWithListeners.length > 0) {
+        // Nota: _getEventListeners es una función interna de Chrome DevTools. No funcionará en producción.
+        // Usaremos una forma alternativa de verificar si el listener está presente, aunque no sea tan directa.
+        // Una forma simple es hacer clic programáticamente en un elemento y ver si el handler se ejecuta.
+        // Sin embargo, para no interferir, simplemente registraremos la presencia de los elementos.
+        console.log('Calendar day elements created and event listeners should be attached.');
+        // Podrías añadir aquí: console.log(daysWithListeners[firstDayOfWeek]); para inspeccionar el elemento
+    }
+    // *****************************************************
+
+    // Actualizar encabezado del calendario
+    currentMonthYearHeader.textContent = `${lastDayOfMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}`;
+
+    // Limpiar inputs al cambiar de mes/año
+    clearDailyInputs();
+}
+
+function handleDayClick() {
+    console.log('Día clickeado:', this.dataset.date); // Debugging: Día clickeado
+    // Remover selección anterior
+    if (selectedDate) {
+        const prevSelectedDay = document.querySelector(`.calendar-day[data-date="${selectedDate}"]`);
+        if (prevSelectedDay) {
+            prevSelectedDay.classList.remove('selected');
+        }
+    }
+
+    // Seleccionar día actual
+    selectedDate = this.dataset.date;
+    this.classList.add('selected');
+    console.log('handleDayClick: selectedDate actualizada a', selectedDate); // Debugging
+
+    // Cargar datos si existen para este día
+    loadDailyEarningData(selectedDate);
+}
+
+function loadDailyEarningData(date) {
+    console.log('loadDailyEarningData: Intentando cargar datos para', date); // Debugging
+    const data = calendarioLaboralData[date];
+    console.log('loadDailyEarningData: Datos encontrados para', date, ':', data); // Debugging
+    if (data) {
+        workScheduleInput.value = data.horario;
+        workFunctionTextarea.value = data.funcion;
+        dailyEarningInput.value = data.ganancia; // Cargar la ganancia guardada
+        console.log('loadDailyEarningData: Inputs rellenados', { horario: data.horario, funcion: data.funcion, ganancia: data.ganancia }); // Debugging
+        
+        // Mostrar botones de editar/eliminar y ocultar guardar
+        saveDailyEarningBtn.style.display = 'none';
+        dailyEarningsActionsDiv.style.display = 'flex'; // Usar flex para alinear botones
+
+    } else {
+        workScheduleInput.value = ''; // Asegurarse de que los inputs estén vacíos si no hay datos
+        workFunctionTextarea.value = '';
+        dailyEarningInput.value = ''; // Limpiar el input de ganancia
+        console.log('loadDailyEarningData: No hay datos para', date, '. Inputs vacíos.'); // Debugging
+
+        // Ocultar botones de editar/eliminar y mostrar guardar
+        saveDailyEarningBtn.style.display = 'block'; // O flex, dependiendo de tu layout
+        dailyEarningsActionsDiv.style.display = 'none';
+    }
+}
+
+function clearDailyInputs() {
+    console.log('clearDailyInputs: Limpiando inputs y selección.'); // Debugging
+    workScheduleInput.value = '';
+    workFunctionTextarea.value = '';
+    dailyEarningInput.value = ''; // Limpiar el input de ganancia
+    selectedDate = null;
+    // Remover selección del día en el calendario
+    document.querySelectorAll('.calendar-day').forEach(day => day.classList.remove('selected'));
+
+    // Ocultar botones de editar/eliminar y mostrar guardar al limpiar
+    saveDailyEarningBtn.style.display = 'block'; // O flex
+    dailyEarningsActionsDiv.style.display = 'none';
+}
+
+function saveDailyEarningData() {
+    console.log('saveDailyEarningData: Botón guardar clickeado.'); // Debugging
+    if (!selectedDate) {
+        alert('Por favor, selecciona un día en el calendario.');
+        console.log('saveDailyEarningData: No hay día seleccionado.'); // Debugging
+        return;
+    }
+
+    const horario = workScheduleInput.value.trim();
+    const funcion = workFunctionTextarea.value.trim();
+    const ganancia = parseFloat(dailyEarningInput.value); // Leer la ganancia del input
+
+    console.log('saveDailyEarningData: Inputs values', { horario, funcion, ganancia }); // Debugging
+
+    if (!horario || !funcion || isNaN(ganancia) || ganancia < 0) {
+         alert('Por favor, completa el horario, la función realizada y introduce una ganancia válida.');
+         console.log('saveDailyEarningData: Horario, función o ganancia inválidos.'); // Debugging
+         return;
+    }
+
+    calendarioLaboralData[selectedDate] = {
+        horario: horario,
+        funcion: funcion,
+        ganancia: ganancia
+    };
+
+    console.log('saveDailyEarningData: Datos a guardar', { date: selectedDate, data: calendarioLaboralData[selectedDate] }); // Debugging
+
+    localStorage.setItem('calendarioLaboralData', JSON.stringify(calendarioLaboralData));
+    console.log('saveDailyEarningData: Datos guardados en localStorage', JSON.parse(localStorage.getItem('calendarioLaboralData'))); // Debugging
+    alert('Registro guardado con éxito.');
+
+    // Actualizar la visualización del día en el calendario
+    const selectedDayElement = document.querySelector(`.calendar-day[data-date="${selectedDate}"]`);
+    if (selectedDayElement) {
+        selectedDayElement.classList.add('has-earning');
+        // Eliminar contenido anterior y añadir número del día y ganancia
+        selectedDayElement.innerHTML = '';
+        const dayNumberSpan = document.createElement('span');
+        dayNumberSpan.textContent = new Date(selectedDate).getDate(); // Obtener solo el número del día
+        selectedDayElement.appendChild(dayNumberSpan);
+
+        const earningSpan = document.createElement('span');
+        earningSpan.classList.add('daily-earning-display');
+        earningSpan.textContent = `${ganancia.toFixed(2)}€`; // Mostrar la ganancia introducida
+        selectedDayElement.appendChild(earningSpan);
+         console.log('saveDailyEarningData: UI del día actualizada.'); // Debugging
+    }
+
+    // Limpiar inputs después de guardar
+    clearDailyInputs();
+
+    // Opcional: Recalcular balance general si es necesario (podría ser complejo con datos diarios)
+    // actualizarBalance();
+}
+
+function inicializarCalendario() {
+     // Asegurarse de que currentMonth y currentYear estén actualizados si se cambia de sección
+     const today = new Date();
+     currentMonth = today.getMonth();
+     currentYear = today.getFullYear();
+
+     renderCalendar();
+}
+
+// Event Listeners para navegación del calendario
+prevMonthBtn.addEventListener('click', () => {
+    currentMonth--;
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    renderCalendar();
+});
+
+nextMonthBtn.addEventListener('click', () => {
+    currentMonth++;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
+    renderCalendar();
+});
+
+// Event Listener para el botón de guardar
+saveDailyEarningBtn.addEventListener('click', saveDailyEarningData);
+
+// Funciones para editar y eliminar registro diario
+function editDailyEarning() {
+    console.log('editDailyEarning: Botón editar clickeado para', selectedDate); // Debugging
+    if (!selectedDate || !calendarioLaboralData[selectedDate]) {
+        alert('No hay registro para editar.');
+        console.log('editDailyEarning: No hay día seleccionado o datos para editar.'); // Debugging
+        return;
+    }
+
+    const horario = workScheduleInput.value.trim();
+    const funcion = workFunctionTextarea.value.trim();
+    const ganancia = parseFloat(dailyEarningInput.value); // Leer la ganancia del input
+
+    if (!horario || !funcion || isNaN(ganancia) || ganancia < 0) {
+        alert('Por favor, completa el horario, la función realizada y introduce una ganancia válida.');
+        console.log('editDailyEarning: Horario, función o ganancia inválidos al intentar editar.'); // Debugging
+        return;
+    }
+
+    // Actualizar datos en el objeto
+    calendarioLaboralData[selectedDate].horario = horario;
+    calendarioLaboralData[selectedDate].funcion = funcion;
+    calendarioLaboralData[selectedDate].ganancia = ganancia; // Actualizar la ganancia
+
+    localStorage.setItem('calendarioLaboralData', JSON.stringify(calendarioLaboralData));
+    console.log('editDailyEarning: Datos actualizados en localStorage', JSON.parse(localStorage.getItem('calendarioLaboralData'))); // Debugging
+    alert('Registro actualizado con éxito.');
+
+    // Actualizar la visualización del día en el calendario
+    const selectedDayElement = document.querySelector(`.calendar-day[data-date="${selectedDate}"]`);
+    if (selectedDayElement) {
+        selectedDayElement.classList.add('has-earning');
+        // Eliminar contenido anterior y añadir número del día y ganancia
+        selectedDayElement.innerHTML = '';
+        const dayNumberSpan = document.createElement('span');
+        dayNumberSpan.textContent = new Date(selectedDate).getDate(); // Obtener solo el número del día
+        selectedDayElement.appendChild(dayNumberSpan);
+
+        const earningSpan = document.createElement('span');
+        earningSpan.classList.add('daily-earning-display');
+        earningSpan.textContent = `${ganancia.toFixed(2)}€`; // Mostrar la ganancia actualizada
+        selectedDayElement.appendChild(earningSpan);
+         console.log('editDailyEarning: UI del día actualizada.'); // Debugging
+    }
+
+    // No limpiar inputs después de editar, para permitir ediciones rápidas si es necesario
+    // clearDailyInputs(); // Esto podría ser una opción dependiendo del UX deseado
+}
+
+function deleteDailyEarning() {
+     console.log('deleteDailyEarning: Botón eliminar clickeado para', selectedDate); // Debugging
+    if (!selectedDate || !calendarioLaboralData[selectedDate]) {
+        alert('No hay registro para eliminar.');
+        console.log('deleteDailyEarning: No hay día seleccionado o datos para eliminar.'); // Debugging
+        return;
+    }
+
+    if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
+        // Eliminar datos del objeto
+        delete calendarioLaboralData[selectedDate];
+
+        localStorage.setItem('calendarioLaboralData', JSON.stringify(calendarioLaboralData));
+         console.log('deleteDailyEarning: Datos eliminados de localStorage', JSON.parse(localStorage.getItem('calendarioLaboralData'))); // Debugging
+        alert('Registro eliminado con éxito.');
+
+        // Actualizar la visualización del calendario (re-renderizar para quitar la marca de ganancia)
+        renderCalendar();
+
+        // Limpiar inputs y selección después de eliminar
+        clearDailyInputs();
+    }
+}
+
+// Event Listeners para botones de editar y eliminar
+editDailyEarningBtn.addEventListener('click', editDailyEarning);
+deleteDailyEarningBtn.addEventListener('click', deleteDailyEarning);
+
+// Modificar la inicialización del formulario de ingresos
+function inicializarFormularioIngresos() {
+    const form = document.getElementById('ingresoForm');
+    if (!form) {
+        console.log('Formulario de ingresos no encontrado. Es posible que no estés en la sección de ingresos.');
+        return;
+    }
+
+    // Remover event listener anterior si existe
+    form.removeEventListener('submit', agregarIngreso);
+    
+    // Añadir nuevo event listener
+    form.addEventListener('submit', agregarIngreso);
+
+    // Establecer la fecha actual como valor por defecto
+    const fechaInput = document.getElementById('fechaIngreso');
+    if (fechaInput) {
+        const today = new Date().toISOString().split('T')[0];
+        fechaInput.value = today;
+    }
+}
+
+// Event Listeners para la navegación del Sidebar
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+        const sectionId = this.getAttribute('data-section');
+        mostrarSeccion(sectionId);
+    });
+});
+
+function mostrarSeccion(sectionId) {
+    // Oculta todas las secciones de contenido
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+
+    // Remueve la clase 'active' de todos los items del sidebar
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+
+    // Muestra la sección de contenido correspondiente y activa el item del sidebar
+    const targetSection = document.getElementById(sectionId);
+    const targetNavItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+
+    if (targetSection && targetNavItem) {
+        targetSection.classList.add('active');
+        targetNavItem.classList.add('active');
+
+        // Lógica específica para inicializar secciones
+        if (sectionId === 'dashboard') {
+            inicializarGraficoBalance();
+            actualizarBalance();
+        } else if (sectionId === 'transacciones') {
+            inicializarFormularioIngresos();
+            mostrarIngresos();
+            inicializarAcordeonIngresos(); // Inicializar acordeón aquí
+        } else if (sectionId === 'gastos') {
+            inicializarGastosExtras();
+            inicializarSelectorAños();
+            const mesGuardado = localStorage.getItem('mesActual');
+            const añoGuardado = localStorage.getItem('añoActual');
+            if (mesGuardado && añoGuardado) {
+                document.getElementById('mesActual').value = mesGuardado;
+                document.getElementById('añoActual').value = añoGuardado;
+            } else {
+                const fechaActual = new Date();
+                document.getElementById('mesActual').value = fechaActual.getMonth() + 1;
+                document.getElementById('añoActual').value = fechaActual.getFullYear();
+            }
+            mostrarGastosFijos();
+        } else if (sectionId === 'evolucion') {
+            cargarObjetivos();
+        } else if (sectionId === 'asesoria') {
+             inicializarChat();
+        } else if (sectionId === 'calendario-laboral') {
+             inicializarCalendario();
+        } else if (sectionId === 'chat') {
+             inicializarChat();
+        }
+    } else {
+        console.error(`Error: No se encontró la sección o el elemento de navegación para el ID: ${sectionId}`);
+        // Opcional: Redirigir a una sección por defecto o mostrar un mensaje al usuario
+        mostrarSeccion('dashboard'); // Ejemplo: redirigir al dashboard
+    }
+}
+
 // Inicializar la aplicación
-document.addEventListener('DOMContentLoaded', inicializarApp); 
+document.addEventListener('DOMContentLoaded', () => {
+    inicializarApp();
+}); 

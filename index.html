@@ -32,9 +32,13 @@
                         <i class="fas fa-chart-bar"></i>
                         <span>Ahorro</span>
                     </li>
-                    <li class="nav-item" data-section="asesoria">
-                        <i class="fas fa-user-tie"></i>
-                        <span>Asesoría</span>
+                    <li class="nav-item" data-section="calendario-laboral">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Calendario Laboral</span>
+                    </li>
+                    <li class="nav-item" data-section="chat">
+                        <i class="fas fa-comments"></i>
+                        <span>Chat Financiero</span>
                     </li>
                 </ul>
             </nav>
@@ -90,27 +94,25 @@
                 <div class="transacciones-container">
                     <div class="ingresos-section">
                         <h3>Registrar Ingreso</h3>
-                        <form id="ingresoForm">
+                        <form id="ingresoForm" class="form-group">
                             <div class="form-group">
                                 <label for="conceptoIngreso">Concepto:</label>
-                                <input type="text" id="conceptoIngreso" required placeholder="Ej: Nómina, Extra, etc.">
+                                <input type="text" id="conceptoIngreso" required placeholder="Ej: Nómina, Extra...">
                             </div>
                             <div class="form-group">
                                 <label for="montoIngreso">Monto (€):</label>
-                                <input type="number" id="montoIngreso" step="0.01" required>
+                                <input type="number" id="montoIngreso" step="0.01" required min="0">
                             </div>
                             <div class="form-group">
                                 <label for="fechaIngreso">Fecha:</label>
                                 <input type="date" id="fechaIngreso" required>
                             </div>
-                            <button type="submit">Registrar Ingreso</button>
+                            <button type="submit" class="btn-guardar">Registrar Ingreso</button>
                         </form>
-                        <div class="ingresos-accordion">
-                            <button type="button" class="accordion-btn" id="toggleHistorialIngresos">
-                                <span>Historial de Ingresos</span>
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                            <div class="accordion-content" id="historialIngresos">
+
+                        <div class="historial-ingresos">
+                            <h3>Historial de Ingresos</h3>
+                            <div class="historial-container">
                                 <ul id="listaIngresos"></ul>
                             </div>
                         </div>
@@ -225,6 +227,10 @@
                                     <h4>Gastos Pendientes</h4>
                                     <p id="gastosPendientes">0.00 €</p>
                                 </div>
+                                <div class="resumen-card">
+                                    <h4>Total Saldos Crédito Restantes</h4>
+                                    <p id="totalSaldosCreditoRestantes">0.00 €</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -243,8 +249,8 @@
                 </div>
             </section>
 
-            <!-- Asesoría Section -->
-            <section id="asesoria" class="content-section">
+            <!-- Asesoría Section (now Chat Financiero) -->
+            <section id="chat" class="content-section">
                 <h2>Asesoría Financiera</h2>
                 <div class="chat-container">
                     <div class="chat-messages" id="chatMessages">
@@ -264,9 +270,9 @@
                     </div>
                     <div class="chat-input-container">
                         <form id="chatForm" class="chat-form">
-                            <textarea 
-                                id="chatInput" 
-                                placeholder="Escribe tu pregunta aquí..." 
+                            <textarea
+                                id="chatInput"
+                                placeholder="Escribe tu pregunta aquí..."
                                 rows="1"
                                 required></textarea>
                             <button type="submit" class="btn-enviar">
@@ -276,6 +282,41 @@
                     </div>
                 </div>
             </section>
+
+            <section id="calendario-laboral" class="content-section">
+                <h2>Calendario Laboral</h2>
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <button id="prevMonthBtn" class="btn" type="button" aria-label="Mes anterior"><i class="fas fa-chevron-left"></i></button>
+                        <h3 id="currentMonthYear">Mes y Año</h3>
+                        <button id="nextMonthBtn" class="btn" type="button" aria-label="Mes siguiente"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="calendar-weekdays"></div>
+                    <div class="calendar-days-grid"></div>
+                </div>
+
+                <div class="daily-earnings-input">
+                    <h3>Registro Diario</h3>
+                    <div class="form-group">
+                        <label for="dailyEarning">Ganancia del Día (€):</label>
+                        <input type="number" id="dailyEarning" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="workSchedule">Horario:</label>
+                        <input type="text" id="workSchedule" placeholder="Ej: 9:00 - 17:00">
+                    </div>
+                    <div class="form-group">
+                        <label for="workFunction">Función Realizada:</label>
+                        <textarea id="workFunction" placeholder="Describe la función..." rows="3"></textarea>
+                    </div>
+                    <button id="saveDailyEarningBtn" class="btn-guardar" type="button">Guardar Registro</button>
+                    <div class="daily-earnings-actions" style="display: none;">
+                         <button id="editDailyEarningBtn" class="btn-editar" type="button"><i class="fas fa-edit"></i> Editar</button>
+                         <button id="deleteDailyEarningBtn" class="btn-eliminar" type="button"><i class="fas fa-trash"></i> Eliminar</button>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
@@ -317,4 +358,4 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
-</html> 
+</html>
