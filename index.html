@@ -2,17 +2,20 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Control de Finanzas Personales</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- Botón de menú móvil -->
-        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menú">
+        <!-- Botón para mostrar/ocultar sidebar en móvil -->
+        <button id="sidebarToggle" class="sidebar-toggle" type="button" aria-label="Mostrar/ocultar menú">
             <i class="fas fa-bars"></i>
         </button>
+
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
