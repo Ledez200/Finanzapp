@@ -1614,57 +1614,50 @@ function mostrarSeccion(sectionId) {
     }
 }
 
-// Función para manejar el menú móvil
-function inicializarMenuMovil() {
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+// Manejo del sidebar en dispositivos móviles
+document.addEventListener('DOMContentLoaded', () => {
+    const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.querySelector('.sidebar');
     const mainContent = document.querySelector('.main-content');
 
-    if (mobileMenuBtn && sidebar) {
-        mobileMenuBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-            // Cambiar el icono del botón
-            const icon = mobileMenuBtn.querySelector('i');
-            if (sidebar.classList.contains('active')) {
-                icon.classList.remove('fa-bars');
-                icon.classList.add('fa-times');
-            } else {
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            }
-        });
-
-        // Cerrar el menú al hacer clic en un elemento de navegación
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            item.addEventListener('click', () => {
-                if (window.innerWidth <= 430) {
-                    sidebar.classList.remove('active');
-                    const icon = mobileMenuBtn.querySelector('i');
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                }
-            });
-        });
-
-        // Cerrar el menú al hacer clic fuera de él
-        document.addEventListener('click', (event) => {
-            if (window.innerWidth <= 430 && 
-                !sidebar.contains(event.target) && 
-                !mobileMenuBtn.contains(event.target) && 
-                sidebar.classList.contains('active')) {
-                sidebar.classList.remove('active');
-                const icon = mobileMenuBtn.querySelector('i');
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            }
-        });
+    // Función para alternar el sidebar
+    function toggleSidebar() {
+        sidebar.classList.toggle('active');
     }
-}
 
-// Inicializar todas las funcionalidades
+    // Event listener para el botón del sidebar
+    sidebarToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleSidebar();
+    });
+
+    // Cerrar sidebar al hacer clic fuera de él
+    document.addEventListener('click', (e) => {
+        if (sidebar.classList.contains('active') && 
+            !sidebar.contains(e.target) && 
+            !sidebarToggle.contains(e.target)) {
+            sidebar.classList.remove('active');
+        }
+    });
+
+    // Cerrar sidebar al cambiar de sección en móvil
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('active');
+            }
+        });
+    });
+
+    // Manejar cambios de orientación
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 768) {
+            sidebar.classList.remove('active');
+        }
+    });
+});
+
+// Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', () => {
-    inicializarNavegacion();
-    inicializarMenuMovil();
     inicializarApp();
 }); 
